@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Reducing API Response Time from 3–10 Seconds to Under 1 Second</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600&family=Schibsted+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f7f9; --surface:#ffffff; --ink:#151a22; --muted:#5a6573; --line:#d9dee5;
+  --accent:#0d6b6b; --accent-soft:#e3f1f0; --warn:#b4532a; --warn-soft:#fbece5;
+  --code-bg:#121a24; --code-ink:#d7e2ee;
+  --serif:"Literata",Georgia,"Times New Roman",serif;
+  --sans:"Schibsted Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#10151c; --surface:#171e28; --ink:#e7ecf2; --muted:#9aa6b4; --line:#2b3544;
+    --accent:#5cc2bd; --accent-soft:#16302f; --warn:#f0a27c; --warn-soft:#33211a;
+    --code-bg:#0b1118; --code-ink:#d7e2ee; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#10151c; --surface:#171e28; --ink:#e7ecf2; --muted:#9aa6b4; --line:#2b3544;
+  --accent:#5cc2bd; --accent-soft:#16302f; --warn:#f0a27c; --warn-soft:#33211a;
+  --code-bg:#0b1118; --code-ink:#d7e2ee; color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 1.0625rem/1.7 var(--serif);-webkit-text-size-adjust:100%}
+main{max-width:46rem;margin:0 auto;padding:3.5rem 1.25rem 4rem}
+h1,h2,h3{font-family:var(--sans);line-height:1.2;margin:0}
+h1{font-size:clamp(1.9rem,5vw,2.75rem);font-weight:700;letter-spacing:-.02em}
+h2{font-size:1.5rem;font-weight:700;margin-top:3rem;letter-spacing:-.01em}
+h3{font-size:1.125rem;font-weight:500;margin-top:1.75rem}
+.sub{font-family:var(--sans);color:var(--muted);margin:.9rem 0 0;font-size:1rem}
+p{margin:.9rem 0}
+code{font-family:var(--mono);font-size:.88em;background:var(--accent-soft);padding:.1em .35em;border-radius:4px}
+pre{background:var(--code-bg);color:var(--code-ink);padding:1.1rem 1.25rem;border-radius:8px;overflow-x:auto;font:400 .875rem/1.6 var(--mono);margin:1.25rem 0}
+pre code{background:none;padding:0;font-size:inherit}
+.note{font-family:var(--sans);font-size:.9rem;color:var(--muted)}
+
+/* Flow diagram */
+.flow{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:1.25rem;margin:1.5rem 0}
+.flow h3{margin:0 0 .75rem;font-size:1rem}
+.flow h3 + .steps{margin-bottom:1.25rem}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.5rem;font-family:var(--sans);font-size:.95rem}
+.steps li{position:relative;border:1px solid var(--line);border-radius:6px;padding:.55rem .8rem;background:var(--bg)}
+.steps li + li::before{content:"↓";position:absolute;left:50%;top:-1.05rem;transform:translateX(-50%);color:var(--muted);line-height:1}
+.steps li + li{margin-top:.55rem}
+.steps li.bad{border-color:var(--warn);background:var(--warn-soft);font-weight:500}
+.paths{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.path{border:1px solid var(--line);border-radius:8px;padding:.9rem;background:var(--bg)}
+.path h4{font:500 .95rem var(--sans);margin:0 0 .7rem}
+.path .steps li{background:var(--surface)}
+.result{margin-top:1rem;border:1px solid var(--accent);background:var(--accent-soft);border-radius:8px;padding:.85rem 1rem;font-family:var(--sans)}
+.result strong{display:block;font-size:1.25rem}
+.result span{color:var(--muted);font-size:.9rem}
+hr.sep{border:0;border-top:1px solid var(--line);margin:1.25rem 0}
+@media (max-width:34rem){.paths{grid-template-columns:1fr}}
+
+/* Before / after */
+.compare{width:100%;border-collapse:collapse;font-family:var(--sans);margin:1.25rem 0;overflow-x:auto;display:block}
+.compare th,.compare td{text-align:left;padding:.7rem .9rem;border-bottom:1px solid var(--line);vertical-align:top}
+.compare th{font-weight:500;color:var(--muted);font-size:.9rem}
+.compare td:last-child{color:var(--accent);font-weight:700}
+
+ul.clean{padding-left:1.2rem}
+ul.clean li{margin:.4rem 0}
+.cta{margin-top:3rem;padding:1.5rem;border:1px solid var(--accent);border-radius:10px;background:var(--accent-soft)}
+.cta h2{margin:0 0 .5rem;font-size:1.25rem}
+.cta p{margin:.5rem 0 0}
+a{color:var(--accent)}
+</style>
+</head>
+<body>
+<main>
+  <h1>Reducing API Response Time from 3–10 Seconds to Under 1 Second</h1>
+  <p class="sub">Backend performance optimization · Node.js, TypeScript, Amazon DocumentDB, Redis</p>
+
+  <h2>The challenge</h2>
+  <p>An education platform had a course-listing API that combined data from three collections to build the response its frontend needed. As the dataset grew from hundreds to thousands of courses, response times typically reached <strong>3–4 seconds and could climb to 10 seconds</strong> for complex publishing-status filters.</p>
+  <p>The API fetched data from every collection and did most of the processing in application code. That work already ran in a separate worker, but the real problem remained: the API retrieved and processed far more data than any single page needed.</p>
+  <p>The goal was backend-driven pagination and filtering that kept course-level uniqueness, business-unit-specific data, and publishing rules intact.</p>
+
+  <h2>Why it was hard</h2>
+  <h3>Pagination across multiple collections</h3>
+  <p>One course can have several detail records across business units, but the frontend needs one row per course. Paginating raw detail records produces duplicate courses and wrong page contents.</p>
+  <h3>Publishing rules spanning two data sources</h3>
+  <p>A course’s effective status depended on a user-managed publishing status and on an end date held elsewhere. Queries also had to respect terms, so records from one term never mixed with another.</p>
+  <h3>Unnecessary data retrieval</h3>
+  <p>Fetching every detail record before filtering became slower with each new course, even when a user only wanted the newest few.</p>
+
+  <h2>The solution</h2>
+  <h3>Two query paths instead of one</h3>
+  <p>Filtered and unfiltered requests have different shapes, so each gets its own path.</p>
+
+  <div class="flow" role="img" aria-label="Before: fetch all three collections, merge in application code, several seconds. After: unfiltered requests query the master, paginate, then fetch needed details; filtered requests match details, group by course and term, then sort and paginate. Result: 800 milliseconds or less.">
+    <h3>Before: application-heavy processing</h3>
+    <ol class="steps">
+      <li>Fetch data from all three collections</li>
+      <li>Merge and deduplicate large datasets in application code</li>
+      <li class="bad">Several seconds; complex filters could reach 10 seconds</li>
+    </ol>
+    <hr class="sep">
+    <h3>After: a path for each kind of request</h3>
+    <div class="paths">
+      <div class="path">
+        <h4>No detail filters</h4>
+        <ol class="steps">
+          <li>Query the course master</li>
+          <li>Paginate, then fetch only the needed details</li>
+        </ol>
+      </div>
+      <div class="path">
+        <h4>With detail filters</h4>
+        <ol class="steps">
+          <li>Filter details with <code>$match</code></li>
+          <li>Group by course and term with <code>$group</code></li>
+          <li>Sort and paginate the course list</li>
+        </ol>
+      </div>
+    </div>
+    <div class="result"><strong>800 ms or less</strong><span>Observed after optimization in tested scenarios</span></div>
+  </div>
+
+  <h3>Filtering and grouping in the database</h3>
+  <p>For filtered requests, aggregation does the heavy lifting before results reach the application. A simplified version of the pipeline:</p>
+<pre><code>[
+  { $match: { /* requested filters */ } },
+  {
+    $group: {
+      _id: {
+        courseId: "$courseId",
+        term: "$term"
+      }
+    }
+  },
+  { $sort: { /* required ordering */ } },
+  { $skip: offset },
+  { $limit: pageSize }
+]</code></pre>
+  <p>Grouping by course ID and term before <code>$skip</code> and <code>$limit</code> means each page counts unique courses, not detail records. I used targeted queries and aggregation without <code>$lookup</code>, because it wasn’t needed for this design and the DocumentDB environment constrained the available options.</p>
+
+  <h3>Simplified publishing-status queries</h3>
+  <p>The publishing filter needed data kept in two places. I moved the end date and published-term metadata into a dedicated field on the details records, and only the master-data update API may change it. Queries are built around the exact course and term combinations needed, so unrelated terms are never fetched.</p>
+
+  <h3>Redis for reference data, indexes for the query patterns</h3>
+  <p>Center names come from a small, stable master dataset. I served them from Redis and refreshed the cache whenever the master-data update ran, which removed a repeated database read from every listing request.</p>
+  <p>I also added indexes based on the API’s query and filtering patterns, so retrieval stays efficient as the data grows. With these changes, the separate worker was no longer needed for this API.</p>
+
+  <h2>Results</h2>
+  <table class="compare">
+    <thead><tr><th></th><th>Before</th><th>After</th></tr></thead>
+    <tbody>
+      <tr><td>Response time</td><td>Typically 3–4 s, up to 10 s with complex filters</td><td>800 ms or less in tested scenarios</td></tr>
+      <tr><td>Processing</td><td>Large datasets merged in application code</td><td>Filtering and grouping in the database</td></tr>
+      <tr><td>Infrastructure</td><td>Separate worker required</td><td>Worker no longer needed</td></tr>
+      <tr><td>Pagination</td><td>Frontend handled a large dataset</td><td>Backend returns the requested page</td></tr>
+    </tbody>
+  </table>
+  <p>No bugs were reported in testing or in production after the change.</p>
+  <p class="note">Latency figures are observed results, not a formal benchmark across every dataset size and filter combination. Exact CPU, database-usage, and percentage-improvement measurements were not retained.</p>
+
+  <h2>My contribution</h2>
+  <p>The team identified the need for backend-driven pagination and filtering. I designed and built the solution: the filtered and unfiltered query paths, aggregation-based grouping, term-aware publishing queries, Redis caching, and the indexes.</p>
+
+  <h2>What this project shows</h2>
+  <ul class="clean">
+    <li>Finding the bottleneck in a slow Node.js API.</li>
+    <li>Paginating correctly when many records represent one logical entity.</li>
+    <li>Using database aggregation to cut application-side processing.</li>
+    <li>Turning complex business rules into query logic.</li>
+    <li>Applying Redis caching and indexing to production workloads.</li>
+  </ul>
+
+  <div class="cta">
+    <h2>Need help optimizing your backend?</h2>
+    <p>I help teams fix slow Node.js APIs, optimize database queries, implement efficient pagination, and build reliable backend features with Node.js, TypeScript, MongoDB-compatible databases, and Redis.</p>
+    <p><strong>If your API slows down as your data grows, get in touch.</strong> <a href="mailto:vishalsinghshekhawat0912@gmail.com">you@example.com</a></p>
+  </div>
+</main>
+</body>
+</html>
