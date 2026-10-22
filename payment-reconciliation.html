@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Payment Reconciliation for Order Management | Backend Case Study</title>
+<meta name="description" content="An anonymized backend case study on payment callbacks, scheduled transaction reconciliation, branch-specific gateways, and order consistency using Node.js, TypeScript, and MongoDB.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600&family=Schibsted+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f7f9; --surface:#ffffff; --ink:#151a22; --muted:#5a6573; --line:#d9dee5;
+  --accent:#0d6b6b; --accent-soft:#e3f1f0; --warn:#b4532a; --warn-soft:#fbece5;
+  --serif:"Literata",Georgia,"Times New Roman",serif;
+  --sans:"Schibsted Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#10151c; --surface:#171e28; --ink:#e7ecf2; --muted:#9aa6b4; --line:#2b3544;
+    --accent:#5cc2bd; --accent-soft:#16302f; --warn:#f0a27c; --warn-soft:#33211a; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#10151c; --surface:#171e28; --ink:#e7ecf2; --muted:#9aa6b4; --line:#2b3544;
+  --accent:#5cc2bd; --accent-soft:#16302f; --warn:#f0a27c; --warn-soft:#33211a; color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 1.0625rem/1.7 var(--serif);-webkit-text-size-adjust:100%}
+main{max-width:46rem;margin:0 auto;padding:3.5rem 1.25rem 4rem}
+h1,h2,h3{font-family:var(--sans);line-height:1.2;margin:0}
+h1{font-size:clamp(1.9rem,5vw,2.75rem);font-weight:700;letter-spacing:-.02em}
+h2{font-size:1.5rem;font-weight:700;margin-top:3rem;letter-spacing:-.01em}
+h3{font-size:1.125rem;font-weight:500;margin-top:1.75rem}
+.sub{font-family:var(--sans);color:var(--muted);margin:.9rem 0 0;font-size:1rem}
+p{margin:.9rem 0}
+.note{font-family:var(--sans);font-size:.9rem;color:var(--muted)}
+.pull{border-left:3px solid var(--accent);padding:.25rem 0 .25rem 1rem;margin:1.5rem 0;font-size:1.2rem;font-weight:600}
+
+.flow{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:1.25rem;margin:1.5rem 0}
+.flow h3{margin:0 0 .75rem;font-size:1rem}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;font-family:var(--sans);font-size:.95rem}
+.steps li{position:relative;border:1px solid var(--line);border-radius:6px;padding:.55rem .8rem;background:var(--bg)}
+.steps li + li{margin-top:1.05rem}
+.steps li + li::before{content:"↓";position:absolute;left:50%;top:-1.05rem;transform:translateX(-50%);color:var(--muted);line-height:1}
+.steps li.ok{border-color:var(--accent);background:var(--accent-soft);font-weight:500}
+.paths{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.path{border:1px solid var(--line);border-radius:8px;padding:.9rem;background:var(--bg)}
+.path h4{font:500 .95rem var(--sans);margin:0 0 .2rem}
+.path p.tag{font:400 .85rem var(--sans);color:var(--muted);margin:0 0 .8rem}
+.path .steps li{background:var(--surface)}
+.join{margin-top:1.05rem}
+hr.sep{border:0;border-top:1px solid var(--line);margin:1.25rem 0}
+@media (max-width:34rem){.paths{grid-template-columns:1fr}}
+
+.compare{width:100%;border-collapse:collapse;font-family:var(--sans);margin:1.25rem 0;overflow-x:auto;display:block}
+.compare th,.compare td{text-align:left;padding:.7rem .9rem;border-bottom:1px solid var(--line);vertical-align:top}
+.compare th{font-weight:500;color:var(--muted);font-size:.9rem}
+.compare td:last-child{color:var(--accent);font-weight:700}
+ul.clean{padding-left:1.2rem}
+ul.clean li{margin:.5rem 0}
+.cta{margin-top:3rem;padding:1.5rem;border:1px solid var(--accent);border-radius:10px;background:var(--accent-soft)}
+.cta h2{margin:0 0 .5rem;font-size:1.25rem}
+.cta p{margin:.5rem 0 0}
+a{color:var(--accent)}
+</style>
+</head>
+<body>
+<main>
+  <p class="note"><a href="index.html">← Back to API performance case study</a></p>
+  <h1>When the Payment Succeeds but the App Never Hears About It</h1>
+  <p class="sub">Payment reconciliation design · Node.js, TypeScript, MongoDB</p>
+
+  <h2>The problem</h2>
+  <p>Payment processing is not a single API call. A payment can reach the gateway even when the application never receives the response. A callback can arrive late, a database update can fail, or a transaction can sit in a pending state longer than expected.</p>
+  <p>Before this workflow, gaps like these tended to surface through customer support tickets. We were building a new payment-gateway integration for an order-management system, and it needed a way to find and fix these gaps without waiting for a customer to complain.</p>
+  <p class="pull">Payment processing is a state-management and consistency problem, not just a request-and-response problem.</p>
+
+  <h2>The core design idea</h2>
+  <p>An order and its payment attempts are different things. The <strong>order</strong> is the customer’s purchase and its business status. A <strong>transaction</strong> is one payment attempt, with its own gateway transaction ID, status, and gateway response. One order can have several attempts, and a failed or unresolved attempt does not mean the order has failed for good.</p>
+  <p>Keeping the two states separate makes partial failures easier to reason about. A transaction can succeed while the order update fails, and the design has to leave room to spot and recover that.</p>
+
+  <h2>The solution: two ways for an update to arrive</h2>
+  <div class="flow" role="img" aria-label="Two paths update a payment. Callback path: decrypt and verify the payload, find the existing transaction, skip if already completed, update the transaction, complete the order on success. Reconciliation path: hourly job selects failed transactions from the last 24 hours and pending or processing transactions, queries the gateway with the existing transaction ID without creating a new charge, updates the transaction, and continues if one lookup fails.">
+    <h3>Order created → payment attempt → transaction initiated</h3>
+    <div class="paths">
+      <div class="path">
+        <h4>Callback (fast path)</h4>
+        <p class="tag">Gateway notifies the app</p>
+        <ol class="steps">
+          <li>Decrypt payload and verify signature</li>
+          <li>Find the existing transaction</li>
+          <li>Skip if already completed</li>
+          <li>Update the transaction</li>
+        </ol>
+      </div>
+      <div class="path">
+        <h4>Reconciliation (safety net)</h4>
+        <p class="tag">Runs hourly</p>
+        <ol class="steps">
+          <li>Select eligible failed and pending transactions</li>
+          <li>Ask the gateway for the status using the existing transaction ID</li>
+          <li>Update the transaction</li>
+          <li>If one lookup fails, continue with the rest</li>
+        </ol>
+      </div>
+    </div>
+    <ol class="steps join"><li class="ok">On a successful payment, the order is marked completed</li></ol>
+  </div>
+
+  <p>The callback gives a quick update. The hourly job catches eligible updates the callback missed. It handles two groups separately: failed transactions that are more than one hour old and fall within the preceding 24-hour window, and pending or processing transactions selected from a separate 24-hour window. The reconciliation job queries the gateway using the existing transaction ID; it does not initiate another payment.</p>
+
+  <h3>Branch-specific gateways</h3>
+  <p>Different branches can use different gateways with their own credentials. The backend checks that the chosen gateway is configured for the requested branch and that the branch in the request matches the one on the order. Credentials are fetched using that validated context, database access is restricted, and sensitive values are redacted from logs.</p>
+
+  <h2>Key decisions</h2>
+  <ul class="clean">
+    <li><strong>Check the status; don’t retry the payment.</strong> Reconciliation reuses the existing transaction ID to learn the outcome of a payment that already exists. Checking an outcome and starting a new charge are different operations.</li>
+    <li><strong>Callbacks for speed, reconciliation for safety.</strong> The callback avoids waiting for the next scheduled run; the scheduled run recovers updates the callback missed.</li>
+    <li><strong>Keep transaction state apart from order state.</strong> A payment can succeed while the order update fails, and separating the two makes those cases visible.</li>
+    <li><strong>Trust stored data, not client input.</strong> Branch and gateway come from the stored transaction and order, giving callbacks a reliable reference to check against.</li>
+    <li><strong>One bad lookup shouldn’t stop the run.</strong> If a single gateway lookup errors, the job moves on to the remaining transactions.</li>
+  </ul>
+
+  <h2>Results</h2>
+  <table class="compare">
+    <thead><tr><th></th><th>Before</th><th>After</th></tr></thead>
+    <tbody>
+      <tr><td>Missed or delayed updates</td><td>Often surfaced through customer support tickets</td><td>Eligible missed updates could be recovered automatically through reconciliation</td></tr>
+      <tr><td>Manual checks and support tickets</td><td>Needed to investigate payment gaps</td><td>Reduced after the reconciliation workflow was introduced</td></tr>
+      <tr><td>Stuck pending transactions</td><td>Could remain unresolved until someone investigated</td><td>Fewer remained unresolved without a status check</td></tr>
+    </tbody>
+  </table>
+  <p class="note">These are observed qualitative outcomes following the workflow's introduction. Measurements were not retained, so no percentages or counts are claimed. Recovery depends on the transaction remaining eligible for reconciliation and the gateway returning a usable status.</p>
+
+  <h2>Known limits and next steps</h2>
+  <p>Payment systems fail in several places at once, and this implementation does not cover every case. Being clear about that is part of the design work.</p>
+  <ul class="clean">
+    <li><strong>Concurrent duplicate callbacks.</strong> A status check handles duplicates that arrive one after another; simultaneous ones need conditional, atomic updates to prevent racing writes.</li>
+    <li><strong>Duplicate successful payments.</strong> If two attempts for one order both succeed, both transactions can be marked completed, and a separate team starts the refund. Automated detection and refund tracking would be the next step.</li>
+    <li><strong>Order-level recovery.</strong> If a transaction succeeds but the order update fails, a periodic consistency check between transactions and orders would catch it.</li>
+    <li><strong>Payment-value validation.</strong> Explicitly compare the gateway-reported amount and currency with the expected values stored for the transaction before applying a successful status.</li>
+    <li><strong>Retry after an initiation timeout.</strong> A retry currently creates a new transaction ID and sends a new payment request. If the original request succeeded but its response was lost, this can create a duplicate-payment risk. An idempotency strategy could safely handle retries of uncertain requests.</li>
+  </ul>
+
+  <h2>My contribution</h2>
+  <p>I implemented the hourly reconciliation workflow, the callback processing, the branch-specific gateway validation, and the failure-tolerant gateway lookups, as part of the team’s gateway integration.</p>
+
+  <h2>Another backend case study</h2>
+  <p>See how I redesigned a course-listing API to reduce response time from several seconds to 800 ms or less in tested scenarios.</p>
+  <p><a href="index.html">Read the API performance optimization case study →</a></p>
+
+  <div class="cta">
+    <h2>Building or fixing a payment workflow?</h2>
+    <p>I help teams build order and payment flows in Node.js and TypeScript that cope with callbacks, retries, and partial failures.</p>
+    <p><strong>If your payments and orders sometimes disagree, get in touch.</strong> <a href="mailto:you@example.com">you@example.com</a></p>
+  </div>
+</main>
+</body>
+</html>
