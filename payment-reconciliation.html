@@ -3,8 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Payment Reconciliation for Order Management | Backend Case Study</title>
-<meta name="description" content="An anonymized backend case study on payment callbacks, scheduled transaction reconciliation, branch-specific gateways, and order consistency using Node.js, TypeScript, and MongoDB.">
+<title>When the Payment Succeeds but the App Never Hears About It</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600&family=Schibsted+Grotesk:wght@500;700&display=swap" rel="stylesheet">
@@ -67,13 +66,21 @@ ul.clean li{margin:.5rem 0}
 .cta h2{margin:0 0 .5rem;font-size:1.25rem}
 .cta p{margin:.5rem 0 0}
 a{color:var(--accent)}
+
+.site-nav{max-width:46rem;margin:0 auto;padding:1.2rem 1.25rem 0;display:flex;justify-content:space-between;align-items:center;gap:1rem;font:500 .88rem/1.4 var(--sans)}
+.site-nav a{text-decoration:none}.site-nav .brand{font-weight:700;color:var(--ink)}.site-nav .brand span{font-weight:400;color:var(--muted)}
+@media(max-width:34rem){.site-nav{align-items:flex-start;flex-direction:column;gap:.5rem}}
 </style>
 </head>
 <body>
+<nav class="site-nav" aria-label="Main navigation">
+<a href="./index.html" class="brand">Vishal Singh Shekhawat<span> / Backend Engineering</span></a>
+<a href="./index.html#case-studies">← All case studies</a>
+</nav>
 <main>
-  <p class="note"><a href="index.html">← Back to API performance case study</a></p>
   <h1>When the Payment Succeeds but the App Never Hears About It</h1>
   <p class="sub">Payment reconciliation design · Node.js, TypeScript, MongoDB</p>
+  <p class="pull">An hourly reconciliation job works alongside gateway callbacks to recover eligible missed payment updates automatically.</p>
 
   <h2>The problem</h2>
   <p>Payment processing is not a single API call. A payment can reach the gateway even when the application never receives the response. A callback can arrive late, a database update can fail, or a transaction can sit in a pending state longer than expected.</p>
@@ -112,7 +119,17 @@ a{color:var(--accent)}
     <ol class="steps join"><li class="ok">On a successful payment, the order is marked completed</li></ol>
   </div>
 
-  <p>The callback gives a quick update. The hourly job catches eligible updates the callback missed. It handles two groups separately: failed transactions that are more than one hour old and fall within the preceding 24-hour window, and pending or processing transactions selected from a separate 24-hour window. The reconciliation job queries the gateway using the existing transaction ID; it does not initiate another payment.</p>
+  <p>The callback gives a quick update. The hourly job catches what the callback missed. The job handles two groups separately: failed transactions from the preceding 24-hour window that have passed an age threshold, and pending or processing transactions in the reconciliation window that may still succeed.</p>
+
+  <h3>A concrete scenario</h3>
+  <div class="flow">
+    <ol class="steps">
+      <li>A customer completes payment, and the gateway records it as successful.</li>
+      <li>The callback does not update the application, so the transaction remains unresolved locally.</li>
+      <li>The next eligible reconciliation run queries the gateway using the existing transaction ID, receives the successful status, and updates the transaction and order.</li>
+    </ol>
+  </div>
+  <p class="note">This illustrates the recovery path when the transaction is eligible for reconciliation and the gateway returns a usable status.</p>
 
   <h3>Branch-specific gateways</h3>
   <p>Different branches can use different gateways with their own credentials. The backend checks that the chosen gateway is configured for the requested branch and that the branch in the request matches the one on the order. Credentials are fetched using that validated context, database access is restricted, and sensitive values are redacted from logs.</p>
@@ -128,31 +145,26 @@ a{color:var(--accent)}
 
   <h2>Results</h2>
   <table class="compare">
-    <thead><tr><th></th><th>Before</th><th>After</th></tr></thead>
+    <thead><tr><th>Area</th><th>Outcome</th></tr></thead>
     <tbody>
-      <tr><td>Missed or delayed updates</td><td>Often surfaced through customer support tickets</td><td>Eligible missed updates could be recovered automatically through reconciliation</td></tr>
-      <tr><td>Manual checks and support tickets</td><td>Needed to investigate payment gaps</td><td>Reduced after the reconciliation workflow was introduced</td></tr>
-      <tr><td>Stuck pending transactions</td><td>Could remain unresolved until someone investigated</td><td>Fewer remained unresolved without a status check</td></tr>
+      <tr><td>Missed payment updates</td><td>Eligible missed payment updates are recovered automatically through gateway status checks.</td></tr>
+      <tr><td>Support intervention</td><td>Reduced the need for customer-support follow-up to resolve payment-status gaps.</td></tr>
+      <tr><td>Pending transactions</td><td>Eligible pending or processing transactions can be checked again without initiating a new payment.</td></tr>
     </tbody>
   </table>
-  <p class="note">These are observed qualitative outcomes following the workflow's introduction. Measurements were not retained, so no percentages or counts are claimed. Recovery depends on the transaction remaining eligible for reconciliation and the gateway returning a usable status.</p>
+  <p class="note">These are observed qualitative outcomes. Recovery depends on transaction eligibility and the gateway returning a usable status. Quantitative measurements were not retained.</p>
 
-  <h2>Known limits and next steps</h2>
-  <p>Payment systems fail in several places at once, and this implementation does not cover every case. Being clear about that is part of the design work.</p>
+  <h2>Engineering approach</h2>
+  <p>Payment reliability depends on more than receiving a successful gateway response. The application needs to connect that response to the correct transaction and order, validate the source, and keep status updates moving even when an individual lookup fails.</p>
   <ul class="clean">
-    <li><strong>Concurrent duplicate callbacks.</strong> A status check handles duplicates that arrive one after another; simultaneous ones need conditional, atomic updates to prevent racing writes.</li>
-    <li><strong>Duplicate successful payments.</strong> If two attempts for one order both succeed, both transactions can be marked completed, and a separate team starts the refund. Automated detection and refund tracking would be the next step.</li>
-    <li><strong>Order-level recovery.</strong> If a transaction succeeds but the order update fails, a periodic consistency check between transactions and orders would catch it.</li>
-    <li><strong>Payment-value validation.</strong> Explicitly compare the gateway-reported amount and currency with the expected values stored for the transaction before applying a successful status.</li>
-    <li><strong>Retry after an initiation timeout.</strong> A retry currently creates a new transaction ID and sends a new payment request. If the original request succeeded but its response was lost, this can create a duplicate-payment risk. An idempotency strategy could safely handle retries of uncertain requests.</li>
+    <li><strong>Reason about the full transaction lifecycle.</strong> Treat each payment attempt as its own transaction while keeping the order’s business status distinct.</li>
+    <li><strong>Design for more than one update path.</strong> Combine gateway callbacks with scheduled reconciliation so a missed callback does not have to be the end of the recovery process.</li>
+    <li><strong>Validate against trusted transaction context.</strong> Use the stored order, branch, and gateway association when validating incoming updates.</li>
+    <li><strong>Identify the next reliability improvement.</strong> For evolving requirements, evaluate idempotency, safe state transitions, and consistency checks against the actual failure modes and business needs.</li>
   </ul>
 
   <h2>My contribution</h2>
-  <p>I implemented the hourly reconciliation workflow, the callback processing, the branch-specific gateway validation, and the failure-tolerant gateway lookups, as part of the team’s gateway integration.</p>
-
-  <h2>Another backend case study</h2>
-  <p>See how I redesigned a course-listing API to reduce response time from several seconds to 800 ms or less in tested scenarios.</p>
-  <p><a href="index.html">Read the API performance optimization case study →</a></p>
+  <p>I implemented the hourly reconciliation workflow, callback processing, branch-specific gateway validation, and failure-tolerant gateway lookups as part of the team’s payment-gateway integration. The result was a recovery path for eligible missed payment updates, reducing the need for customer-support follow-up.</p>
 
   <div class="cta">
     <h2>Building or fixing a payment workflow?</h2>

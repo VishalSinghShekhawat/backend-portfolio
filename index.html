@@ -2,193 +2,75 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Reducing API Response Time from 3–10 Seconds to Under 1 Second</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#10211f">
+<meta name="description" content="Vishal Singh Shekhawat is a backend developer focused on Node.js, TypeScript, database performance, and reliable backend systems.">
+<title>Vishal Singh Shekhawat | Backend Developer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600&family=Schibsted+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root{
-  --bg:#f6f7f9; --surface:#ffffff; --ink:#151a22; --muted:#5a6573; --line:#d9dee5;
-  --accent:#0d6b6b; --accent-soft:#e3f1f0; --warn:#b4532a; --warn-soft:#fbece5;
-  --code-bg:#121a24; --code-ink:#d7e2ee;
-  --serif:"Literata",Georgia,"Times New Roman",serif;
-  --sans:"Schibsted Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
-  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
-  box-sizing:border-box;
-  padding-top:env(safe-area-inset-top,0px);
-  padding-bottom:env(safe-area-inset-bottom,0px);
-}
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]){
-    --bg:#10151c; --surface:#171e28; --ink:#e7ecf2; --muted:#9aa6b4; --line:#2b3544;
-    --accent:#5cc2bd; --accent-soft:#16302f; --warn:#f0a27c; --warn-soft:#33211a;
-    --code-bg:#0b1118; --code-ink:#d7e2ee; color-scheme:dark;
-  }
-}
-:root[data-theme="dark"]{
-  --bg:#10151c; --surface:#171e28; --ink:#e7ecf2; --muted:#9aa6b4; --line:#2b3544;
-  --accent:#5cc2bd; --accent-soft:#16302f; --warn:#f0a27c; --warn-soft:#33211a;
-  --code-bg:#0b1118; --code-ink:#d7e2ee; color-scheme:dark;
-}
-*,*::before,*::after{box-sizing:border-box}
-html{scroll-padding-top:env(safe-area-inset-top,0px)}
-body{margin:0;background:var(--bg);color:var(--ink);font:400 1.0625rem/1.7 var(--serif);-webkit-text-size-adjust:100%}
-main{max-width:46rem;margin:0 auto;padding:3.5rem 1.25rem 4rem}
-h1,h2,h3{font-family:var(--sans);line-height:1.2;margin:0}
-h1{font-size:clamp(1.9rem,5vw,2.75rem);font-weight:700;letter-spacing:-.02em}
-h2{font-size:1.5rem;font-weight:700;margin-top:3rem;letter-spacing:-.01em}
-h3{font-size:1.125rem;font-weight:500;margin-top:1.75rem}
-.sub{font-family:var(--sans);color:var(--muted);margin:.9rem 0 0;font-size:1rem}
-p{margin:.9rem 0}
-code{font-family:var(--mono);font-size:.88em;background:var(--accent-soft);padding:.1em .35em;border-radius:4px}
-pre{background:var(--code-bg);color:var(--code-ink);padding:1.1rem 1.25rem;border-radius:8px;overflow-x:auto;font:400 .875rem/1.6 var(--mono);margin:1.25rem 0}
-pre code{background:none;padding:0;font-size:inherit}
-.note{font-family:var(--sans);font-size:.9rem;color:var(--muted)}
-
-/* Flow diagram */
-.flow{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:1.25rem;margin:1.5rem 0}
-.flow h3{margin:0 0 .75rem;font-size:1rem}
-.flow h3 + .steps{margin-bottom:1.25rem}
-.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.5rem;font-family:var(--sans);font-size:.95rem}
-.steps li{position:relative;border:1px solid var(--line);border-radius:6px;padding:.55rem .8rem;background:var(--bg)}
-.steps li + li::before{content:"↓";position:absolute;left:50%;top:-1.05rem;transform:translateX(-50%);color:var(--muted);line-height:1}
-.steps li + li{margin-top:.55rem}
-.steps li.bad{border-color:var(--warn);background:var(--warn-soft);font-weight:500}
-.paths{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
-.path{border:1px solid var(--line);border-radius:8px;padding:.9rem;background:var(--bg)}
-.path h4{font:500 .95rem var(--sans);margin:0 0 .7rem}
-.path .steps li{background:var(--surface)}
-.result{margin-top:1rem;border:1px solid var(--accent);background:var(--accent-soft);border-radius:8px;padding:.85rem 1rem;font-family:var(--sans)}
-.result strong{display:block;font-size:1.25rem}
-.result span{color:var(--muted);font-size:.9rem}
-hr.sep{border:0;border-top:1px solid var(--line);margin:1.25rem 0}
-@media (max-width:34rem){.paths{grid-template-columns:1fr}}
-
-/* Before / after */
-.compare{width:100%;border-collapse:collapse;font-family:var(--sans);margin:1.25rem 0;overflow-x:auto;display:block}
-.compare th,.compare td{text-align:left;padding:.7rem .9rem;border-bottom:1px solid var(--line);vertical-align:top}
-.compare th{font-weight:500;color:var(--muted);font-size:.9rem}
-.compare td:last-child{color:var(--accent);font-weight:700}
-
-ul.clean{padding-left:1.2rem}
-ul.clean li{margin:.4rem 0}
-.cta{margin-top:3rem;padding:1.5rem;border:1px solid var(--accent);border-radius:10px;background:var(--accent-soft)}
-.cta h2{margin:0 0 .5rem;font-size:1.25rem}
-.cta p{margin:.5rem 0 0}
-a{color:var(--accent)}
+:root{--bg:#f5f7f4;--paper:#fff;--ink:#172321;--muted:#61716d;--line:#dbe3df;--accent:#0c7569;--accent-dark:#07564f;--soft:#e5f3ef;--night:#10211f;--night-muted:#b8cbc5;--mono:"DM Mono",monospace;--sans:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:5rem}body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.7 var(--sans);-webkit-font-smoothing:antialiased}a{color:inherit}.wrap{width:min(1100px,calc(100% - 40px));margin:0 auto}
+header{position:sticky;top:0;z-index:10;background:rgba(245,247,244,.93);backdrop-filter:blur(14px);border-bottom:1px solid rgba(219,227,223,.8)}.nav{min-height:72px;display:flex;align-items:center;justify-content:space-between;gap:24px}.brand{font-weight:800;letter-spacing:-.04em;text-decoration:none;font-size:1rem}.brand span{color:var(--accent)}.navlinks{display:flex;gap:25px;align-items:center;font-size:.88rem;color:var(--muted)}.navlinks a{text-decoration:none}.navlinks a:hover{color:var(--accent)}.navlinks .contact-link{padding:9px 14px;border:1px solid var(--line);border-radius:999px;color:var(--ink)}
+.hero{padding:90px 0 82px;display:grid;grid-template-columns:minmax(0,1.45fr) minmax(240px,.75fr);gap:54px;align-items:center}.eyebrow{font:500 .78rem/1.4 var(--mono);text-transform:uppercase;letter-spacing:.09em;color:var(--accent);display:flex;align-items:center;gap:10px}.eyebrow:before{content:"";width:24px;height:1px;background:var(--accent)}h1,h2,h3,p{margin-top:0}h1{font-size:clamp(2.7rem,6.2vw,5.3rem);line-height:1.04;letter-spacing:-.075em;margin:22px 0;max-width:760px}h1 em{font-style:normal;color:var(--accent)}.lead{font-size:1.1rem;line-height:1.85;color:var(--muted);max-width:650px}.actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:30px}.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;text-decoration:none;border-radius:7px;padding:12px 17px;font-weight:700;font-size:.9rem;transition:transform .15s ease,background .15s ease}.btn:hover{transform:translateY(-2px)}.btn-primary{background:var(--accent);color:white}.btn-primary:hover{background:var(--accent-dark)}.btn-secondary{border:1px solid var(--line);background:var(--paper)}
+.hero-card{background:var(--night);color:white;border-radius:14px;padding:27px;box-shadow:0 22px 55px rgba(16,33,31,.1);position:relative;overflow:hidden}.hero-card:after{content:"";position:absolute;width:190px;height:190px;border:1px solid rgba(184,203,197,.16);border-radius:50%;right:-78px;top:-78px;box-shadow:0 0 0 22px rgba(184,203,197,.035),0 0 0 45px rgba(184,203,197,.025)}.card-label{font:500 .72rem var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--night-muted)}.hero-card h2{font-size:1.5rem;line-height:1.25;letter-spacing:-.04em;margin:18px 0 12px;position:relative;z-index:1}.hero-card p{font-size:.9rem;color:var(--night-muted);margin-bottom:24px}.stack{display:flex;flex-wrap:wrap;gap:8px;position:relative;z-index:1}.stack span{border:1px solid rgba(184,203,197,.25);border-radius:5px;padding:6px 9px;font:400 .73rem var(--mono);color:#e1ece8}.hero-card .availability{border-top:1px solid rgba(184,203,197,.2);padding-top:17px;margin-top:24px;margin-bottom:0;font-size:.82rem}
+section{padding:75px 0;border-top:1px solid var(--line)}.section-head{display:flex;justify-content:space-between;align-items:end;gap:24px;margin-bottom:30px}.kicker{font:500 .75rem var(--mono);text-transform:uppercase;letter-spacing:.1em;color:var(--accent);margin-bottom:10px}h2.section-title{font-size:clamp(2rem,4vw,3rem);line-height:1.1;letter-spacing:-.065em;margin-bottom:0}.section-desc{color:var(--muted);max-width:430px;font-size:.94rem;margin:0}.about-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:55px}.about-copy p{color:var(--muted);margin-bottom:15px}.about-copy strong{color:var(--ink)}.principles{display:grid;gap:12px}.principle{background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:17px 18px;display:grid;grid-template-columns:34px 1fr;gap:12px}.principle .num{font:500 .78rem var(--mono);color:var(--accent);padding-top:3px}.principle h3{font-size:.96rem;letter-spacing:-.025em;margin-bottom:4px}.principle p{font-size:.86rem;color:var(--muted);margin:0}
+.projects{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.project{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:24px;display:flex;flex-direction:column;min-height:330px;transition:border-color .2s,transform .2s}.project:hover{border-color:#8bbdb2;transform:translateY(-3px)}.project-top{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:24px}.project-type{font:500 .72rem var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--accent)}.project-number{font:400 .8rem var(--mono);color:#93a29d}.project h3{font-size:1.42rem;line-height:1.3;letter-spacing:-.05em;margin-bottom:12px}.project p{font-size:.91rem;color:var(--muted);margin-bottom:20px}.tags{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:22px}.tags span{font-size:.73rem;padding:5px 8px;background:var(--bg);border:1px solid var(--line);border-radius:4px;color:#51625d}.project-link{margin-top:auto;display:inline-flex;gap:9px;align-items:center;color:var(--accent);font-weight:800;text-decoration:none;font-size:.9rem}.project-link:hover{gap:13px}
+.skills-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.skill{padding:17px;background:var(--paper);border:1px solid var(--line);border-radius:8px}.skill h3{font-size:.9rem;margin-bottom:8px}.skill p{font-size:.81rem;color:var(--muted);margin:0;line-height:1.7}
+.contact-panel{background:var(--night);color:white;border-radius:15px;padding:clamp(28px,5vw,55px);display:grid;grid-template-columns:1fr auto;gap:32px;align-items:center}.contact-panel .kicker{color:#85cfc0}.contact-panel h2{font-size:clamp(2rem,4vw,3.5rem);line-height:1.08;letter-spacing:-.065em;margin-bottom:15px;max-width:650px}.contact-panel p{color:var(--night-muted);max-width:590px;margin:0}.contact-actions{display:flex;flex-direction:column;gap:10px;min-width:155px}.contact-actions .btn-primary{background:#8ce0cd;color:#10211f}.contact-actions .btn-secondary{background:transparent;color:white;border-color:#526760}footer{padding:25px 0 34px;color:var(--muted);font-size:.8rem}.footer-inner{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}footer a{color:var(--accent);text-decoration:none}
+@media(max-width:800px){.hero{grid-template-columns:1fr;gap:30px;padding:65px 0}.hero-card{max-width:560px}.about-grid{grid-template-columns:1fr;gap:30px}.skills-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.contact-panel{grid-template-columns:1fr}.contact-actions{flex-direction:row;flex-wrap:wrap}}
+@media(max-width:560px){.wrap{width:min(100% - 28px,1100px)}.nav{min-height:64px}.navlinks{gap:12px;font-size:.8rem}.navlinks a:nth-child(1){display:none}.hero{padding:52px 0}.projects{grid-template-columns:1fr}.project{min-height:0}.section-head{align-items:flex-start;flex-direction:column}.skills-grid{grid-template-columns:1fr 1fr}section{padding:54px 0}.lead{font-size:1rem}.hero-card{padding:22px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{transition:none!important}}
 </style>
 </head>
 <body>
-<main>
-  <h1>Reducing API Response Time from 3–10 Seconds to Under 1 Second</h1>
-  <p class="sub">Backend performance optimization · Node.js, TypeScript, Amazon DocumentDB, Redis</p>
-
-  <h2>The challenge</h2>
-  <p>An education platform had a course-listing API that combined data from three collections to build the response its frontend needed. As the dataset grew from hundreds to thousands of courses, response times typically reached <strong>3–4 seconds and could climb to 10 seconds</strong> for complex publishing-status filters.</p>
-  <p>The API fetched data from every collection and did most of the processing in application code. That work already ran in a separate worker, but the real problem remained: the API retrieved and processed far more data than any single page needed.</p>
-  <p>The goal was backend-driven pagination and filtering that kept course-level uniqueness, business-unit-specific data, and publishing rules intact.</p>
-
-  <h2>Why it was hard</h2>
-  <h3>Pagination across multiple collections</h3>
-  <p>One course can have several detail records across business units, but the frontend needs one row per course. Paginating raw detail records produces duplicate courses and wrong page contents.</p>
-  <h3>Publishing rules spanning two data sources</h3>
-  <p>A course’s effective status depended on a user-managed publishing status and on an end date held elsewhere. Queries also had to respect terms, so records from one term never mixed with another.</p>
-  <h3>Unnecessary data retrieval</h3>
-  <p>Fetching every detail record before filtering became slower with each new course, even when a user only wanted the newest few.</p>
-
-  <h2>The solution</h2>
-  <h3>Two query paths instead of one</h3>
-  <p>Filtered and unfiltered requests have different shapes, so each gets its own path.</p>
-
-  <div class="flow" role="img" aria-label="Before: fetch all three collections, merge in application code, several seconds. After: unfiltered requests query the master, paginate, then fetch needed details; filtered requests match details, group by course and term, then sort and paginate. Result: 800 milliseconds or less.">
-    <h3>Before: application-heavy processing</h3>
-    <ol class="steps">
-      <li>Fetch data from all three collections</li>
-      <li>Merge and deduplicate large datasets in application code</li>
-      <li class="bad">Several seconds; complex filters could reach 10 seconds</li>
-    </ol>
-    <hr class="sep">
-    <h3>After: a path for each kind of request</h3>
-    <div class="paths">
-      <div class="path">
-        <h4>No detail filters</h4>
-        <ol class="steps">
-          <li>Query the course master</li>
-          <li>Paginate, then fetch only the needed details</li>
-        </ol>
-      </div>
-      <div class="path">
-        <h4>With detail filters</h4>
-        <ol class="steps">
-          <li>Filter details with <code>$match</code></li>
-          <li>Group by course and term with <code>$group</code></li>
-          <li>Sort and paginate the course list</li>
-        </ol>
-      </div>
-    </div>
-    <div class="result"><strong>800 ms or less</strong><span>Observed after optimization in tested scenarios</span></div>
-  </div>
-
-  <h3>Filtering and grouping in the database</h3>
-  <p>For filtered requests, aggregation does the heavy lifting before results reach the application. A simplified version of the pipeline:</p>
-<pre><code>[
-  { $match: { /* requested filters */ } },
-  {
-    $group: {
-      _id: {
-        courseId: "$courseId",
-        term: "$term"
-      }
-    }
-  },
-  { $sort: { /* required ordering */ } },
-  { $skip: offset },
-  { $limit: pageSize }
-]</code></pre>
-  <p>Grouping by course ID and term before <code>$skip</code> and <code>$limit</code> means each page counts unique courses, not detail records. I used targeted queries and aggregation without <code>$lookup</code>, because it wasn’t needed for this design and the DocumentDB environment constrained the available options.</p>
-
-  <h3>Simplified publishing-status queries</h3>
-  <p>The publishing filter needed data kept in two places. I moved the end date and published-term metadata into a dedicated field on the details records, and only the master-data update API may change it. Queries are built around the exact course and term combinations needed, so unrelated terms are never fetched.</p>
-
-  <h3>Redis for reference data, indexes for the query patterns</h3>
-  <p>Center names come from a small, stable master dataset. I served them from Redis and refreshed the cache whenever the master-data update ran, which removed a repeated database read from every listing request.</p>
-  <p>I also added indexes based on the API’s query and filtering patterns, so retrieval stays efficient as the data grows. With these changes, the separate worker was no longer needed for this API.</p>
-
-  <h2>Results</h2>
-  <table class="compare">
-    <thead><tr><th></th><th>Before</th><th>After</th></tr></thead>
-    <tbody>
-      <tr><td>Response time</td><td>Typically 3–4 s, up to 10 s with complex filters</td><td>800 ms or less in tested scenarios</td></tr>
-      <tr><td>Processing</td><td>Large datasets merged in application code</td><td>Filtering and grouping in the database</td></tr>
-      <tr><td>Infrastructure</td><td>Separate worker required</td><td>Worker no longer needed</td></tr>
-      <tr><td>Pagination</td><td>Frontend handled a large dataset</td><td>Backend returns the requested page</td></tr>
-    </tbody>
-  </table>
-  <p>No bugs were reported in testing or in production after the change.</p>
-  <p class="note">Latency figures are observed results, not a formal benchmark across every dataset size and filter combination. Exact CPU, database-usage, and percentage-improvement measurements were not retained.</p>
-
-  <h2>My contribution</h2>
-  <p>The team identified the need for backend-driven pagination and filtering. I designed and built the solution: the filtered and unfiltered query paths, aggregation-based grouping, term-aware publishing queries, Redis caching, and the indexes.</p>
-
-  <h2>What this project shows</h2>
-  <ul class="clean">
-    <li>Finding the bottleneck in a slow Node.js API.</li>
-    <li>Paginating correctly when many records represent one logical entity.</li>
-    <li>Using database aggregation to cut application-side processing.</li>
-    <li>Turning complex business rules into query logic.</li>
-    <li>Applying Redis caching and indexing to production workloads.</li>
-  </ul>
-
-  <h2>Another backend case study</h2>
-  <p>See how I built a payment reconciliation workflow using gateway callbacks and scheduled status checks to recover eligible missed updates and reduce unresolved payment gaps.</p>
-  <p><a href="payment-reconciliation.html">Read the payment reconciliation case study →</a></p>
-  
-  <div class="cta">
-    <h2>Need help optimizing your backend?</h2>
-    <p>I help teams fix slow Node.js APIs, optimize database queries, implement efficient pagination, and build reliable backend features with Node.js, TypeScript, MongoDB-compatible databases, and Redis.</p>
-    <p><strong>If your API slows down as your data grows, get in touch.</strong> <a href="mailto:vishalsinghshekhawat0912@gmail.com">vishalsinghshekhawat0912@gmail.com</a></p>
-  </div>
+<header><div class="wrap nav">
+<a class="brand" href="#top">VISHAL<span>.</span></a>
+<nav class="navlinks" aria-label="Main navigation"><a href="#about">About</a><a href="#case-studies">Case studies</a><a href="#skills">Skills</a><a class="contact-link" href="#contact">Contact</a></nav>
+</div></header>
+<main id="top">
+<div class="wrap hero">
+<div><div class="eyebrow">Backend developer · Node.js & TypeScript</div>
+<h1>I build backend systems that are <em>faster, clearer,</em> and more reliable.</h1>
+<p class="lead">I'm Vishal Singh Shekhawat, a backend developer working with Node.js, TypeScript, and MongoDB. I enjoy untangling slow APIs, designing practical data flows, and building systems that handle real-world edge cases.</p>
+<div class="actions"><a class="btn btn-primary" href="#case-studies">Explore my case studies <span aria-hidden="true">↘</span></a><a class="btn btn-secondary" href="#contact">Get in touch</a></div></div>
+<aside class="hero-card" aria-label="Technical focus"><div class="card-label">My technical focus</div><h2>Practical engineering.<br>Production-minded thinking.</h2>
+<p>I focus on understanding the problem first, then choosing the simplest solution that fits the data, constraints, and business requirements.</p>
+<div class="stack"><span>Node.js</span><span>TypeScript</span><span>MongoDB</span><span>Redis</span><span>REST APIs</span></div>
+<p class="availability">Open to backend freelance projects and technical collaborations.</p></aside>
+</div>
+<section id="about"><div class="wrap">
+<div class="section-head"><div><div class="kicker">A little about me</div><h2 class="section-title">I like solving the part<br>that makes systems hard.</h2></div><p class="section-desc">Beyond writing endpoints, I care about how data moves, where latency comes from, and what happens when dependencies don't behave as expected.</p></div>
+<div class="about-grid"><div class="about-copy">
+<p>My work has involved <strong>production backend development</strong> with Node.js and TypeScript, including database queries, API behavior, caching, and scheduled jobs.</p>
+<p>I approach problems by tracing the actual bottleneck, understanding the business rules, and making changes that are measurable and maintainable—not by adding complexity for its own sake.</p>
+<p>This portfolio shares anonymized case studies based on real engineering work. Company-specific names and confidential details are intentionally omitted.</p>
+</div><div class="principles">
+<div class="principle"><div class="num">01</div><div><h3>Understand before optimizing</h3><p>Find the bottleneck before changing the architecture.</p></div></div>
+<div class="principle"><div class="num">02</div><div><h3>Respect the data model</h3><p>Design queries around the real relationships and business rules.</p></div></div>
+<div class="principle"><div class="num">03</div><div><h3>Build for real failure modes</h3><p>Consider retries, delayed updates, and partial failures.</p></div></div>
+</div></div></div></section>
+<section id="case-studies"><div class="wrap">
+<div class="section-head"><div><div class="kicker">Selected work</div><h2 class="section-title">Case studies</h2></div><p class="section-desc">Real backend problems, the decisions behind the solutions, and the outcomes—shared without confidential company details.</p></div>
+<div class="projects">
+<article class="project"><div class="project-top"><span class="project-type">Performance engineering</span><span class="project-number">01 / 02</span></div>
+<h3>Reducing API response time from seconds to under one second</h3><p>Reworked a course-listing API's query strategy, aggregation, pagination, caching, and indexes to avoid processing large datasets in application code.</p>
+<div class="tags"><span>Node.js</span><span>TypeScript</span><span>DocumentDB</span><span>Redis</span></div><a class="project-link" href="./api-optimization.html">Read case study <span aria-hidden="true">→</span></a></article>
+<article class="project"><div class="project-top"><span class="project-type">Payments & reliability</span><span class="project-number">02 / 02</span></div>
+<h3>Recovering missed payment updates with reconciliation</h3><p>Combined gateway callbacks with an hourly reconciliation workflow to recover eligible missed transaction updates and reduce support follow-up.</p>
+<div class="tags"><span>Node.js</span><span>TypeScript</span><span>MongoDB</span><span>Payment gateways</span></div><a class="project-link" href="./payment-reconciliation.html">Read case study <span aria-hidden="true">→</span></a></article>
+</div></div></section>
+<section id="skills"><div class="wrap"><div class="section-head"><div><div class="kicker">Tools I work with</div><h2 class="section-title">Backend toolkit</h2></div><p class="section-desc">Technologies I've used in backend development and production workflows.</p></div>
+<div class="skills-grid">
+<div class="skill"><h3>Runtime & language</h3><p>Node.js<br>TypeScript<br>JavaScript</p></div>
+<div class="skill"><h3>Data & caching</h3><p>MongoDB<br>Amazon DocumentDB<br>Redis</p></div>
+<div class="skill"><h3>Backend patterns</h3><p>REST APIs<br>Pagination & aggregation<br>Scheduled jobs</p></div>
+<div class="skill"><h3>Reliability</h3><p>Gateway callbacks<br>Status reconciliation<br>Logging & error handling</p></div>
+</div></div></section>
+<section id="contact"><div class="wrap"><div class="contact-panel"><div><div class="kicker">Contact</div><h2>Have a backend problem to solve?</h2><p>If you need help with a slow API, database query, or a backend feature, I'd be happy to discuss the problem and work out a practical approach.</p></div>
+<div class="contact-actions"><a class="btn btn-primary" href="mailto:vishalsinghshekhawat0912@gmail.com">Email me ↗</a><a class="btn btn-secondary" href="https://github.com/vishalsinghshekhawat" target="_blank" rel="noopener noreferrer">GitHub ↗</a></div>
+</div></div></section>
 </main>
-</body>
-</html>
+<footer><div class="wrap footer-inner"><span>© 2026 Vishal Singh Shekhawat</span><span>Built with care · <a href="#top">Back to top ↑</a></span></div></footer>
+</body></html>
